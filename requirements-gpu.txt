@@ -1,0 +1,3 @@
+# Optional: CUDA libraries for running on an NVIDIA GPU (needs a recent driver).
+nvidia-cublas-cu12==12.9.2.10
+nvidia-cudnn-cu12==9.28.1.4

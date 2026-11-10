@@ -33,7 +33,10 @@ def main():
     def progress(p):
         print(f"\r{p:6.1%}", end="", file=sys.stderr, flush=True)
 
-    language, segments = build_transcriber().transcribe(audio, progress)
+    transcriber = build_transcriber()
+    if hasattr(transcriber, "device"):
+        print(f"model: {transcriber.model_name} on {transcriber.device}", file=sys.stderr)
+    language, segments = transcriber.transcribe(audio, progress)
     segments = list(segments)
     print(file=sys.stderr)
 

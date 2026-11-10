@@ -19,6 +19,26 @@ log = logging.getLogger(__name__)
 ProgressCallback = Callable[[float], None]
 
 
+def _add_cuda_dlls():
+    """Make pip-installed CUDA libraries (requirements-gpu.txt) visible on Windows.
+
+    On Linux they are found automatically. On Windows CTranslate2 loads
+    cuBLAS/cuDNN by name, so their folders need to be on the DLL search path.
+    """
+    if os.name != "nt":
+        return
+    try:
+        import nvidia
+    except ImportError:
+        return
+    for root in nvidia.__path__:
+        for lib in ("cublas", "cudnn", "cuda_nvrtc"):
+            bin_dir = os.path.join(root, lib, "bin")
+            if os.path.isdir(bin_dir):
+                os.add_dll_directory(bin_dir)
+                os.environ["PATH"] = bin_dir + os.pathsep + os.environ.get("PATH", "")
+
+
 class Transcriber(Protocol):
     def transcribe(
         self, audio: np.ndarray, on_progress: ProgressCallback | None = None
@@ -29,9 +49,11 @@ class Transcriber(Protocol):
 
 class WhisperTranscriber:
     def __init__(self, model_size: str | None = None, device: str | None = None):
+        _add_cuda_dlls()
         from faster_whisper import WhisperModel
 
         model_size = model_size or os.getenv("WHISPER_MODEL", "small")
+        self.model_name = model_size
         device = device or os.getenv("WHISPER_DEVICE", "auto")
 
         # The model can load on a GPU and still fail on the first real call

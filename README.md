@@ -10,12 +10,15 @@ Built with **FastAPI** and **faster-whisper** (Whisper running on CTranslate2).
 
 Requires Python 3.10+. No system FFmpeg needed (PyAV bundles it). Runs on CPU
 out of the box; uses an NVIDIA GPU automatically if CUDA 12 and cuDNN are installed.
+The model is [Systran/faster-whisper-small](https://huggingface.co/Systran/faster-whisper-small),
+downloaded from Hugging Face on first run.
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate          # Windows
 # source .venv/bin/activate     # macOS / Linux
 pip install -r requirements.txt
+pip install -r requirements-gpu.txt   # optional: NVIDIA GPU (CUDA 12 cuBLAS + cuDNN 9)
 ```
 
 **Run the API**
