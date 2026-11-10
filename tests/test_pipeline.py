@@ -74,9 +74,39 @@ def test_rejects_unsupported_extension(client):
     assert r.status_code == 400
 
 
-def test_rejects_fake_audio(client):
+def test_rejects_fake_audio(client, tmp_path):
     r = client.post("/transcriptions", files={"file": ("fake.mp3", b"not really audio")})
     assert r.status_code == 400
+    assert "uploads" not in r.json()["detail"]  # no internal paths in errors
+    assert not list((tmp_path / "data" / "jobs").glob("*.json"))
+
+
+def test_rejects_oversize_upload(client, tmp_path, monkeypatch):
+    monkeypatch.setattr("app.main.MAX_UPLOAD_MB", 1)
+    r = client.post("/transcriptions", files={"file": ("big.wav", b"\0" * (2 * 1024 * 1024))})
+    assert r.status_code == 413
+    assert not list((tmp_path / "data" / "jobs").glob("*.json"))
+    assert not list((tmp_path / "data" / "uploads").iterdir())
+
+
+def test_unfinished_jobs_resume_after_restart(tmp_path):
+    from app.jobs import JobStore, Worker
+    from app.schemas import JobStatus
+    from app.transcriber import MockTranscriber
+
+    store = JobStore(tmp_path / "data")
+    job = store.new("speech.wav")
+    make_wav(store.upload_path(job), seconds=6)
+    job.status, job.attempts = JobStatus.processing, 1  # as if the server died mid-job
+    store.save(job)
+
+    worker = Worker(store, MockTranscriber())
+    worker.resume_unfinished()
+    worker.pool.shutdown(wait=True)
+
+    done = store.get(job.id)
+    assert done.status == JobStatus.completed
+    assert done.attempts == 2
 
 
 def test_unknown_job_is_404(client):

@@ -45,29 +45,32 @@ def create_transcription(file: UploadFile):
     if suffix not in ALLOWED_EXTENSIONS:
         raise HTTPException(400, f"Unsupported file type. Allowed: {sorted(ALLOWED_EXTENSIONS)}")
 
-    job = store.create(file.filename)
+    job = store.new(file.filename)
     dest = store.upload_path(job)
 
     # Stream to disk in chunks and enforce the size limit as we go.
     limit = MAX_UPLOAD_MB * 1024 * 1024
     written = 0
+    too_large = False
     with dest.open("wb") as out:
         while chunk := file.file.read(1024 * 1024):
             written += len(chunk)
             if written > limit:
-                out.close()
-                dest.unlink(missing_ok=True)
-                raise HTTPException(413, f"File larger than {MAX_UPLOAD_MB} MB")
+                too_large = True
+                break
             out.write(chunk)
+
+    if too_large:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(413, f"File larger than {MAX_UPLOAD_MB} MB")
 
     try:
         probe(dest)
     except InvalidAudioError as exc:
         dest.unlink(missing_ok=True)
-        job.status, job.error = JobStatus.failed, str(exc)
-        store.save(job)
         raise HTTPException(400, str(exc))
 
+    store.save(job)
     app.state.worker.submit(job)
     return job
 

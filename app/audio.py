@@ -6,11 +6,14 @@ M4A, OGG, FLAC and even video files with an audio track all go through
 one code path.
 """
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 import av
 import numpy as np
+
+log = logging.getLogger(__name__)
 
 SAMPLE_RATE = 16_000
 ALLOWED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".ogg", ".flac", ".webm", ".mp4"}
@@ -50,7 +53,8 @@ def probe(path: Path) -> AudioInfo:
                 channels=stream.codec_context.channels,
             )
     except av.error.FFmpegError as exc:
-        raise InvalidAudioError(f"Could not decode audio: {exc}") from exc
+        log.info("Decode failed for %s: %s", path.name, exc)
+        raise InvalidAudioError("Could not decode audio file") from exc
 
 
 def load_audio(path: Path) -> np.ndarray:
@@ -65,7 +69,8 @@ def load_audio(path: Path) -> np.ndarray:
             for out in resampler.resample(None):  # flush
                 chunks.append(out.to_ndarray().reshape(-1))
     except av.error.FFmpegError as exc:
-        raise InvalidAudioError(f"Could not decode audio: {exc}") from exc
+        log.info("Decode failed for %s: %s", path.name, exc)
+        raise InvalidAudioError("Could not decode audio file") from exc
 
     if not chunks:
         raise InvalidAudioError("Audio stream is empty")

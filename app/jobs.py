@@ -37,11 +37,11 @@ class JobStore:
         self.jobs_dir.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
 
-    def create(self, filename: str) -> Job:
-        job = Job(id=uuid.uuid4().hex, filename=filename,
-                  created_at=_now(), updated_at=_now())
-        self.save(job)
-        return job
+    def new(self, filename: str) -> Job:
+        # Not saved yet: the API only persists the job once the upload
+        # has passed validation, so rejected uploads leave nothing behind.
+        return Job(id=uuid.uuid4().hex, filename=filename,
+                   created_at=_now(), updated_at=_now())
 
     def upload_path(self, job: Job) -> Path:
         return self.uploads / f"{job.id}{Path(job.filename).suffix.lower()}"

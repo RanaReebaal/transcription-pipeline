@@ -8,6 +8,9 @@ Built with **FastAPI** and **faster-whisper** (Whisper running on CTranslate2).
 
 ## Quick start
 
+Requires Python 3.10+. No system FFmpeg needed (PyAV bundles it). Runs on CPU
+out of the box; uses an NVIDIA GPU automatically if CUDA 12 and cuDNN are installed.
+
 ```bash
 python -m venv .venv
 .venv\Scripts\activate          # Windows
