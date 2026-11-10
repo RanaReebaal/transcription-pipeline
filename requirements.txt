@@ -1,0 +1,10 @@
+faster-whisper==1.2.1
+fastapi==0.162.2
+uvicorn[standard]==0.54.0
+python-multipart==0.0.33
+av==19.0.2
+numpy==2.5.4
+
+# tests
+pytest==9.2.0
+httpx==0.28.1
